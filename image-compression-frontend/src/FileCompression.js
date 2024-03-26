@@ -14,7 +14,7 @@ function FileCompression() {
         formData.append('image', selectedFile); // Use 'image' as the field name
 
         try {
-            const response = await fetch('https://image-compression-9f6y-cyan.vercel.app//compress-image', { // Update endpoint to /compress-image
+            const response = await fetch('https://image-compression-9f6y-cyan.vercel.app/compress-image', { // Update endpoint to /compress-image
                 method: 'POST',
                 body: formData
             });
