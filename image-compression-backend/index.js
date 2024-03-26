@@ -15,6 +15,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cors());
 
+app.get('/', (req, resp) => {
+    resp.send("Welcome")
+})
+
 // Define a route to handle image compression and download
 app.post('/compress-image', upload.single('image'), async (req, res) => {
     try {
