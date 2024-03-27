@@ -1,82 +1,119 @@
-import React, { useState, useRef } from 'react';
-import './App.css';
+import React from "react";
+import imageCompression from "browser-image-compression";
 
-function FileCompression() {
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [compressedFileUrl, setCompressedFileUrl] = useState(null);
-    const fileInputRef = useRef(null);
-    const handleFileChange = (event) => {
-        setSelectedFile(event.target.files[0]);
+class ImageCompressor extends React.Component {
+    constructor() {
+        super();
+        this.state = {
+            compressedLink: "https://testersdock.com/wp-content/uploads/2017/09/file-upload-1280x640.png",
+            originalImage: null,
+            originalLink: "",
+            clicked: false,
+            compressedImage: "",
+            uploadImage: false
+        };
+        this.fileInputRef = React.createRef();
+    }
+
+    handleFileChange = (event) => {
+        const imageFile = event.target.files[0];
+        console.log("handleFileChange :", imageFile);
+        this.setState({
+            originalLink: URL.createObjectURL(imageFile),
+            originalImage: imageFile,
+            outputFileName: imageFile.name,
+            uploadImage: true
+        });
     };
 
-    const compressFile = async () => {
-        const formData = new FormData();
-        formData.append('image', selectedFile); // Use 'image' as the field name
+    handleCancel = () => {
+        this.setState({
+            originalImage: null,
+            originalLink: "",
+            compressedLink: "",
+            clicked: false,
+            uploadImage: false
+        });
+        this.fileInputRef.current.value = "";
+    };
 
-        try {
-            const response = await fetch('https://image-compression-9f6y-cyan.vercel.app/compress-image', { // Update endpoint to /compress-image
-                method: 'POST',
-                body: formData
+    compressImage = (event) => {
+        event.preventDefault();
+
+        const options = {
+            maxSizeMB: 2,
+            maxWidthOrHeight: 800,
+            useWebWorker: true
+        };
+
+        if (this.state.originalImage === null) {
+            alert("Please select image");
+            return;
+        }
+
+        if (options.maxSizeMB >= this.state.originalImage.size / 1024) {
+            alert("Bring a bigger image");
+            return;
+        }
+
+        imageCompression(this.state.originalImage, options).then(compressedImage => {
+            const downloadLink = URL.createObjectURL(compressedImage);
+            this.setState({
+                compressedImage: compressedImage,
+                compressedLink: downloadLink,
+                clicked: true
             });
-
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                throw new Error(errorMessage);
-            }
-
-            const compressedImageBlob = await response.blob(); // Parse response as Blob
-            const url = URL.createObjectURL(compressedImageBlob);
-            setCompressedFileUrl(url); // Store the compressed image URL in state
-            console.log("CompressedFileUrl::", compressedImageBlob, url);
-            alert('File compressed!');
-        } catch (error) {
-            console.error('Error:', error.message);
-        }
+            alert("Image compressed successfully");
+        });
     };
 
-    const downloadFile = async () => {
-        try {
-            if (compressedFileUrl) {
-                // Create a temporary anchor element to trigger the download
-                const link = document.createElement('a');
-                link.href = compressedFileUrl;
-                link.setAttribute('download', 'compressed.zip'); // Set the filename
-                document.body.appendChild(link);
-                link.click();
+    render() {
+        return (
+            <div className="container">
+                <h1>Image Compression</h1>
+                <div className="input-group">
+                    <div className="input-group">
+                        <label htmlFor="fileInput">Select File:</label>
+                        <input
+                            ref={this.fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="input-image"
+                            onChange={this.handleFileChange}
+                        />
+                    </div>
+                    <div className="btn-group">
+                        <button className="btn btn-primary" onClick={this.compressImage}>Compress</button>
+                        <a
+                            href={this.state.compressedLink}
+                            download={this.state.outputFileName}
+                            className="btn btn-primary"
+                        >
+                            Download
+                        </a>
+                        <button className="btn btn-danger" onClick={this.handleCancel}>Cancel</button>
+                    </div>
+                    {/* Display original image */}
+                    {this.state.uploadImage && (
+                        <div>
+                            <h3>Original Image:</h3>
+                            <img src={this.state.originalLink} width={"50%"} height={"30%"} alt="Original" />
+                            <p>Size: {Math.round(this.state.originalImage.size / 1024)} KB</p>
+                        </div>
+                    )}
+                    {/* Display compressed image */}
+                    {this.state.clicked && (
+                        <div>
+                            <h3>Compressed Image:</h3>
+                            <img src={this.state.compressedLink} width={"50%"} height={"30%"} alt="Compressed" />
+                            <p>Size: {Math.round(this.state.compressedImage.size / 1024)} KB</p>
+                        </div>
+                    )}
+                </div>
 
-                // Clean up
-                document.body.removeChild(link);
-            } else {
-                throw new Error('No compressed file URL available');
-            }
-        } catch (error) {
-            console.error('Error:', error.message);
-        }
-    };
-
-    const cancelCompression = () => {
-        setSelectedFile(null);
-
-        setCompressedFileUrl(null);
-
-        fileInputRef.current.value = '';
-    };
-
-    return (
-        <div className="container">
-            <h1> Image Compression </h1>
-            <div className="input-group">
-                <label htmlFor="fileInput">Select File:</label>
-                {/* Use the ref attribute to assign the ref to the file input element */}
-                <input ref={fileInputRef} type="file" id="fileInput" onChange={handleFileChange} />
             </div>
-            <div className="btn-group">
-                <button className="btn btn-primary" onClick={compressFile}>Compress</button>
-                <button className="btn btn-primary" onClick={downloadFile}>Download</button>
-                <button className="btn btn-danger" onClick={cancelCompression}>Cancel</button>
-            </div>
-        </div>
-    );
+        );
+    }
 }
 
-export default FileCompression;
+export default ImageCompressor;
